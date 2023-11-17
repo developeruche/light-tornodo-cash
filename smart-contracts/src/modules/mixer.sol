@@ -4,9 +4,12 @@ pragma solidity 0.8.17;
 import "./ReentrancyGuard.sol";
 import "./hasher.sol";
 import {Errors} from "../providers/errors.sol";
+import "./verifier.sol";
 
 contract Mixer is ReentrancyGuard {
     Hasher hasher;
+    Groth16Verifier verifier;
+
 
     uint8 public treeLevels = 20; // this is the same merkle tree level used be tornado cash
     uint256 public denomimnation = 0.1 ether;
@@ -48,8 +51,9 @@ contract Mixer is ReentrancyGuard {
 
     event Withdraw(address indexed to, uint256 nullifierHash);
 
-    constructor(address _hasher) {
+    constructor(address _hasher, address _verifier) {
         hasher = Hasher(_hasher);
+        verifier = Groth16Verifier(_verifier);
     }
 
     function deposit(uint256 _commitmentHash) external payable nonReentrant {
@@ -106,5 +110,51 @@ contract Mixer is ReentrancyGuard {
 
         commitments[_commitmentHash] = true;
         emit Deposit(newRoot, pairHashes, hashNavigation);
+    }
+
+
+    function withdraw(
+        uint256[2] calldata _pA,
+        uint256[2][2] calldata _pB,
+        uint256[2] calldata _pC,
+        uint256[2] calldata _pubSignals
+    ) external payable nonReentrant {
+        uint256 root = _pubSignals[0];
+        uint256 nullifierHash = _pubSignals[1];
+
+
+        if (!roots[root]) {
+            revert Errors.INVALID_ROOT();
+        }
+
+        if (nullifierHashes[nullifierHash]) {
+            revert Errors.NULLIFER_HAS_BEEN_USED();
+        }
+
+
+        // checks 
+
+        uint256 addressToUint = uint256(uint160(msg.sender));
+        uint256[3] memory __pubSignal = [_pubSignals[0], _pubSignals[0], addressToUint];
+
+        // performing the verification
+        (bool isValid) = verifier.verifyProof(_pA, _pB, _pC, __pubSignal);
+
+
+        if (!isValid) {
+            revert Errors.INVALID_PROOF();
+        }
+
+
+        nullifierHashes[nullifierHash] = true;
+
+        // sending the ether to the recipient
+        (bool ok, ) = payable(msg.sender).call{value: denomimnation}("");
+
+        if (!ok) {
+            revert Errors.PAYMENT_FAILED();
+        }
+
+        emit Withdraw(msg.sender, nullifierHash);
     }
 }
