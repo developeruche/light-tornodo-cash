@@ -4,6 +4,7 @@ pragma solidity 0.8.17;
 
 import {Constants} from "../providers/constants.sol";
 import {HasherProvider as provider} from "../providers/hasher.sol";
+import {HasherController as Controller} from "../controllers/hasher.controller.sol";
 
 
 
@@ -11,7 +12,7 @@ import {HasherProvider as provider} from "../providers/hasher.sol";
 
 
 
-contract Hasher {
+contract Hasher is Controller {
     // @dev this are the constants used in the MiMC5 algorithm (during each iterations);
     uint256[20] c = [
         0,
@@ -39,7 +40,7 @@ contract Hasher {
 
 
 
-    function MiMC5Sponge(uint256[2] memory _ins, uint256 _k) internal view returns(uint256 h) {
+    function MiMC5Sponge(uint256[2] memory _ins, uint256 _k) external view returns(uint256 h) {
         h = provider.MiMC5Sponge(_ins, _k, Constants.p, c);
     }
 
