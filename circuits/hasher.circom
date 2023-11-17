@@ -35,7 +35,3 @@ template Hasher() {
     hashSecret <== commitmentHasher.out[0];
     hashNullifier <== nullifierHasher.out[0];
 }
-
-
-
-component main = Hasher();
