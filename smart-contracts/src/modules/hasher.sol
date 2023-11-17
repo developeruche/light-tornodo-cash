@@ -1,16 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.17;
 
-
 import {Constants} from "../providers/constants.sol";
 import {HasherProvider as provider} from "../providers/hasher.sol";
 import {HasherController as Controller} from "../controllers/hasher.controller.sol";
-
-
-
-
-
-
 
 contract Hasher is Controller {
     // @dev this are the constants used in the MiMC5 algorithm (during each iterations);
@@ -37,11 +30,7 @@ contract Hasher is Controller {
         98428510787134995495896453413714864789970336245473413374424598985988309743097
     ];
 
-
-
-
-    function MiMC5Sponge(uint256[2] memory _ins, uint256 _k) external view returns(uint256 h) {
+    function MiMC5Sponge(uint256[2] memory _ins, uint256 _k) external view returns (uint256 h) {
         h = provider.MiMC5Sponge(_ins, _k, Constants.p, c);
     }
-
 }

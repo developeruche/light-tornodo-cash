@@ -5,26 +5,18 @@ import "./ReentrancyGuard.sol";
 import "./hasher.sol";
 import {Errors} from "../providers/errors.sol";
 
-
-
-
 contract Mixer is ReentrancyGuard {
     Hasher hasher;
 
-
-    uint8 public treeLevels = 20;  // this is the same merkle tree level used be tornado cash
+    uint8 public treeLevels = 20; // this is the same merkle tree level used be tornado cash
     uint256 public denomimnation = 0.1 ether;
     uint256 public nextLeafIndex = 0;
 
-
-
-    // declaring the mappings 
+    // declaring the mappings
     mapping(uint256 => bool) public roots; // this mapping holds a vaule of true for all the valid roots
     mapping(uint8 => uint256) public topLevelHash;
     mapping(uint256 => bool) public nullifierHashes; // this mapping holds a value of true for all the nullifier hashes (this would prevent double spending)
     mapping(uint256 => bool) public commitments; // this mapping holds a value of true for all the commitments (this would prevent replay attacks)
-
-
 
     uint256[20] levelDefault = [
         23183772226880328093887215408966704399401918833188238128725944610428185466379,
@@ -49,44 +41,27 @@ contract Mixer is ReentrancyGuard {
         76840483767501885884368002925517179365815019383466879774586151314479309584255
     ];
 
-
-
     // ==============================
     // EVENTS
     // ==============================
-    event Deposit(
-        uint256 indexed root,
-        uint256[20] indexed pairHashes,
-        uint8[20] pairNagivavtion
-    );
+    event Deposit(uint256 indexed root, uint256[20] indexed pairHashes, uint8[20] pairNagivavtion);
 
-    event Withdraw(
-        address indexed to,
-        uint256 nullifierHash
-    );
+    event Withdraw(address indexed to, uint256 nullifierHash);
 
-
-
-
-    constructor(
-        address _hasher
-    ) {
+    constructor(address _hasher) {
         hasher = Hasher(_hasher);
     }
-
 
     function deposit(uint256 _commitmentHash) external payable nonReentrant {
         if (msg.value != denomimnation) {
             revert Errors.IVALID_AMOUNT();
         }
-        if(commitments[_commitmentHash]) {
+        if (commitments[_commitmentHash]) {
             revert Errors.COMMITMENT_HAS_BEEN_USED();
         }
-        if(nextLeafIndex >= 2**treeLevels) {
+        if (nextLeafIndex >= 2 ** treeLevels) {
             revert Errors.MAXIMUM_TREE_DEPTH_REACHED();
         }
-
-
 
         uint256 newRoot;
         uint256[20] memory pairHashes;
@@ -100,20 +75,19 @@ contract Mixer is ReentrancyGuard {
 
         uint256[2] memory ins;
 
-
-        for(uint8 i = 0; i < treeLevels; i++) {
-            if(currentIndex % 2 == 0) {
+        for (uint8 i = 0; i < treeLevels; i++) {
+            if (currentIndex % 2 == 0) {
                 left = currentHash;
                 right = levelDefault[i];
 
                 pairHashes[i] = levelDefault[i];
-                hashNavigation[i] =  0;
+                hashNavigation[i] = 0;
             } else {
                 left = levelDefault[i];
                 right = currentHash;
 
                 pairHashes[i] = levelDefault[i];
-                hashNavigation[i] =  1;
+                hashNavigation[i] = 1;
             }
 
             ins[0] = left;
@@ -130,8 +104,7 @@ contract Mixer is ReentrancyGuard {
         roots[newRoot] = true;
         nextLeafIndex++;
 
-
         commitments[_commitmentHash] = true;
         emit Deposit(newRoot, pairHashes, hashNavigation);
     }
-} 
+}
